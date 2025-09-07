@@ -150,9 +150,9 @@ export default function Page() {
       const dl = await measureDownload();
       setDown(`${dl.toFixed(1)} Mbps`);
 
-      addLog("⬆️ Upload計測中…");
-      const ul = await measureUpload();
-      setUp(`${ul.toFixed(1)} Mbps`);
+      // addLog("⬆️ Upload計測中…");
+      // const ul = await measureUpload();
+      // setUp(`${ul.toFixed(1)} Mbps`);
 
       addLog("✅ 完了");
       if (barRef.current) barRef.current.value = 100;
