@@ -188,7 +188,7 @@ export default function Page() {
           padding: 16,
         }}
       >
-        <h1>ネット回線速度テスト（Next.js）</h1>
+        <h1>ネット回線速度テスト</h1>
         <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
           <div style={{ flex: "1 1 160px" }}>
             <div style={{ color: "#555", fontSize: 12 }}>Download</div>
