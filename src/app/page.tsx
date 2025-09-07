@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 
 const DOWNLOAD_SIZE_MB = 20;
 const UPLOAD_SIZE_MB = 10;
-const PARALLEL = 4;
+const PARALLEL = 10;
 const PING_COUNT = 8;
 const TIMEOUT_MS = 60_000;
 
@@ -95,6 +95,7 @@ export default function Page() {
     const results = await Promise.all(tasks);
     const total = results.reduce((s, r) => s + r.bytes, 0);
     const ms = Math.max(...results.map((r) => r.ms)); // 近似
+    console.log({ total, ms });
     return mbps(total, ms);
   };
 
@@ -188,7 +189,7 @@ export default function Page() {
           padding: 16,
         }}
       >
-        <h1>ネット回線速度テスト</h1>
+        <h1>ネット回線速度計測</h1>
         <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
           <div style={{ flex: "1 1 160px" }}>
             <div style={{ color: "#555", fontSize: 12 }}>Download</div>
