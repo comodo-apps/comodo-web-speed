@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 
 const DOWNLOAD_SIZE_MB = 20;
 const UPLOAD_SIZE_MB = 10;
-const PARALLEL = 10;
+const PARALLEL = 4;
 const PING_COUNT = 8;
 const TIMEOUT_MS = 60_000;
 
