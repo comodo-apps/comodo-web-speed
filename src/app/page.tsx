@@ -156,7 +156,7 @@ export default function Page() {
 
       addLog("✅ 完了");
       if (barRef.current) barRef.current.value = 100;
-      // eslint:@typescript-eslint/no-explicit-any: "off"
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 外部ライブラリ都合で一時的にany
     } catch (e: any) {
       console.error(e);
       addLog("❌ エラー: " + (e?.message || String(e)));
