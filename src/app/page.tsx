@@ -98,10 +98,16 @@ export default function Page() {
     return mbps(total, ms);
   };
 
+  function fillWithRandom(u8: Uint8Array) {
+    const MAX = 65536;
+    for (let i = 0; i < u8.length; i += MAX) {
+      crypto.getRandomValues(u8.subarray(i, Math.min(i + MAX, u8.length)));
+    }
+  }
+
   const randomBlob = (bytes: number) => {
     const u8 = new Uint8Array(bytes);
-    // Web Crypto で十分高速
-    crypto.getRandomValues(u8);
+    fillWithRandom(u8);
     return new Blob([u8], { type: "application/octet-stream" });
   };
 
@@ -150,9 +156,9 @@ export default function Page() {
       const dl = await measureDownload();
       setDown(`${dl.toFixed(1)} Mbps`);
 
-      // addLog("⬆️ Upload計測中…");
-      // const ul = await measureUpload();
-      // setUp(`${ul.toFixed(1)} Mbps`);
+      addLog("⬆️ Upload計測中…");
+      const ul = await measureUpload();
+      setUp(`${ul.toFixed(1)} Mbps`);
 
       addLog("✅ 完了");
       if (barRef.current) barRef.current.value = 100;
@@ -212,6 +218,10 @@ export default function Page() {
               border: "1px solid #ccc",
               background: "#f8f8f8",
               cursor: "pointer",
+              color: running ? "#999" : "#000",
+              fontSize: 16,
+              fontWeight: 700,
+              userSelect: "none",
             }}
           >
             {running ? "計測中…" : "計測スタート"}
