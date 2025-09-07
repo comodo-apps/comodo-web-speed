@@ -156,6 +156,7 @@ export default function Page() {
 
       addLog("✅ 完了");
       if (barRef.current) barRef.current.value = 100;
+      // eslint:@typescript-eslint/no-explicit-any: "off"
     } catch (e: any) {
       console.error(e);
       addLog("❌ エラー: " + (e?.message || String(e)));
