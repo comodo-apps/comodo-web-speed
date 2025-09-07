@@ -1,4 +1,4 @@
-export const runtime = "edge";
+export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   // 全データを読み切って破棄
