@@ -10,8 +10,7 @@ export async function GET(req: Request) {
   const chunkSize = 64 * 1024;
   let remaining = size;
 
-  const stream = new ReadableStream({
-    type: "bytes",
+  const stream = new ReadableStream<Uint8Array>({
     pull(controller) {
       const len = Math.min(chunkSize, remaining);
       if (len <= 0) {
@@ -20,6 +19,8 @@ export async function GET(req: Request) {
       }
       const buf = new Uint8Array(len);
       randomFillSync(buf); // 乱数で非圧縮化を促す
+      // Edge Runtime: Web Crypto を使用
+      crypto.getRandomValues(buf);
       controller.enqueue(buf);
       remaining -= len;
     },
@@ -30,7 +31,7 @@ export async function GET(req: Request) {
     headers: {
       "Content-Type": "application/octet-stream",
       "Content-Disposition": 'attachment; filename="bin.dat"',
-      "Content-Length": String(size),
+      // ストリーミング時の Content-Length は付けない（Workers では自動/chunked）
       // 圧縮＆キャッシュ抑止（環境により上書きされる可能性はあります）
       "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
       Pragma: "no-cache",
