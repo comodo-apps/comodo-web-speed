@@ -1,11 +1,10 @@
 name = "comodo-web-speed"
 compatibility_date = "2024-09-12"
-compatibility_flags = ["nodejs_compat"]
+compatibility_flags = ["nodejs_compat"]  # node:buffer 等の警告対策
 
-pages_build_output_dir = ".vercel/output/static"
-
-[vars]
-NODE_VERSION = "22.16.0"
-
-[build]
+# Pages 用の設定（BETA）
+[pages]
+# ビルドコマンド（Cloudflare が実行）
 command = "npx @cloudflare/next-on-pages@1"
+# ビルド成果物の出力先（next-on-pages が生成）
+build_output_dir = ".vercel/output/static"
