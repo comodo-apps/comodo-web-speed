@@ -41,6 +41,7 @@ export default function Page() {
   const [message, setMessage] = useState<string>("");
 
   const [running, setRunning] = useState(false);
+  const [completed, setCompleted] = useState(false);
   const barRef = useRef<HTMLProgressElement>(null);
   const dlCircleRef = useRef<SVGCircleElement>(null);
   const ulCircleRef = useRef<SVGCircleElement>(null);
@@ -103,6 +104,35 @@ export default function Page() {
     Math.max(0, Math.min(1, mbpsVal / 1000));
   const normLatency = (msVal: number) =>
     1 - Math.max(0, Math.min(1, msVal / 300));
+
+  // 快適度を計算する関数
+  const getComfortLevel = (type: 'download' | 'upload' | 'latency', value: number) => {
+    switch (type) {
+      case 'download':
+        if (value >= 100) return { level: '非常に快適', color: '#10b981', emoji: '🚀' };
+        if (value >= 50) return { level: '快適', color: '#3b82f6', emoji: '😊' };
+        if (value >= 25) return { level: '普通', color: '#f59e0b', emoji: '😐' };
+        if (value >= 10) return { level: 'やや遅い', color: '#ef4444', emoji: '😕' };
+        return { level: '遅い', color: '#dc2626', emoji: '😞' };
+      
+      case 'upload':
+        if (value >= 50) return { level: '非常に快適', color: '#10b981', emoji: '🚀' };
+        if (value >= 25) return { level: '快適', color: '#3b82f6', emoji: '😊' };
+        if (value >= 10) return { level: '普通', color: '#f59e0b', emoji: '😐' };
+        if (value >= 5) return { level: 'やや遅い', color: '#ef4444', emoji: '😕' };
+        return { level: '遅い', color: '#dc2626', emoji: '😞' };
+      
+      case 'latency':
+        if (value <= 20) return { level: '非常に快適', color: '#10b981', emoji: '🚀' };
+        if (value <= 50) return { level: '快適', color: '#3b82f6', emoji: '😊' };
+        if (value <= 100) return { level: '普通', color: '#f59e0b', emoji: '😐' };
+        if (value <= 200) return { level: 'やや遅い', color: '#ef4444', emoji: '😕' };
+        return { level: '遅い', color: '#dc2626', emoji: '😞' };
+      
+      default:
+        return { level: '不明', color: '#6b7280', emoji: '❓' };
+    }
+  };
 
   // 履歴機能は削除
 
@@ -198,6 +228,7 @@ export default function Page() {
   const start = async () => {
     if (running) return;
     setRunning(true);
+    setCompleted(false);
     setDown("-- Mbps");
     setUp("-- Mbps");
     setLat("-- ms");
@@ -225,7 +256,8 @@ export default function Page() {
       animateGaugeTo(ulCircleRef.current, 0, normMbps(ul), 1200);
       animateNumber(ulValueRef.current, 0, ul, "", 1200, 0);
 
-      setMessage("完了");
+      setMessage("✅ 計測完了");
+      setCompleted(true);
       if (barRef.current) barRef.current.value = 100;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 外部ライブラリ都合で一時的にany
     } catch (e: any) {
@@ -281,6 +313,14 @@ export default function Page() {
               Download
             </div>
             <div className={styles.jitterSmall}>Jitter: {jit}</div>
+            {down !== "-- Mbps" && (
+              <div 
+                className={styles.comfortLevel}
+                style={{ color: getComfortLevel('download', parseFloat(down)).color }}
+              >
+                {getComfortLevel('download', parseFloat(down)).emoji} {getComfortLevel('download', parseFloat(down)).level}
+              </div>
+            )}
           </div>
 
           <div className={`${styles.metricCard} ${styles.upload}`}>
@@ -312,6 +352,14 @@ export default function Page() {
               Upload
             </div>
             <div className={styles.jitterSmall}>Jitter: {jit}</div>
+            {up !== "-- Mbps" && (
+              <div 
+                className={styles.comfortLevel}
+                style={{ color: getComfortLevel('upload', parseFloat(up)).color }}
+              >
+                {getComfortLevel('upload', parseFloat(up)).emoji} {getComfortLevel('upload', parseFloat(up)).level}
+              </div>
+            )}
           </div>
 
           <div className={`${styles.metricCard} ${styles.latency}`}>
@@ -343,6 +391,14 @@ export default function Page() {
               Latency
             </div>
             <div className={styles.jitterSmall}>Jitter: {jit}</div>
+            {lat !== "-- ms" && (
+              <div 
+                className={styles.comfortLevel}
+                style={{ color: getComfortLevel('latency', parseFloat(lat)).color }}
+              >
+                {getComfortLevel('latency', parseFloat(lat)).emoji} {getComfortLevel('latency', parseFloat(lat)).level}
+              </div>
+            )}
           </div>
         </div>
 
@@ -357,20 +413,24 @@ export default function Page() {
           </button>
         </div>
 
-        <div className={styles.progressContainer}>
-          <progress
-            ref={barRef}
-            value={0}
-            max={100}
-            className={styles.progressBar}
-          />
-        </div>
+        {(running || completed || message) && (
+          <>
+            <div className={styles.progressContainer}>
+              <progress
+                ref={barRef}
+                value={0}
+                max={100}
+                className={styles.progressBar}
+              />
+            </div>
 
-        {/* 履歴UIは削除 */}
+            {/* 履歴UIは削除 */}
 
-        <div className={styles.logContainer}>
-          <pre className={styles.logText}>{message}</pre>
-        </div>
+            <div className={`${styles.logContainer} ${completed ? styles.completed : ""}`}>
+              <pre className={styles.logText}>{message}</pre>
+            </div>
+          </>
+        )}
       </div>
       <footer className={styles.footer}>
         <div className={styles.footerInner}>
