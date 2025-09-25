@@ -1,167 +1,658 @@
-.page {
-  --gray-rgb: 0, 0, 0;
-  --gray-alpha-200: rgba(var(--gray-rgb), 0.08);
-  --gray-alpha-100: rgba(var(--gray-rgb), 0.05);
-
-  --button-primary-hover: #383838;
-  --button-secondary-hover: #f2f2f2;
-
+.gauge {
+  width: 100%;
   display: grid;
-  grid-template-rows: 20px 1fr 20px;
+  place-items: center;
+  position: relative;
+}
+.gaugeSvg {
+  width: 200px;
+  height: 200px;
+  transform: rotate(-90deg);
+}
+.gaugeBg {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.12);
+  stroke-width: 10px;
+}
+.gaugeFg {
+  fill: none;
+  stroke-width: 10px;
+  stroke-linecap: round;
+  stroke-dasharray: 326;
+  stroke-dashoffset: 326;
+  transition: stroke-dashoffset 0.6s ease, filter 0.3s ease;
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.12));
+}
+.gaugeFgDownload {
+  stroke: #4facfe;
+}
+.gaugeFgUpload {
+  stroke: #a18cd1;
+}
+.gaugeFgLatency {
+  stroke: #ffb347;
+}
+.gaugeValue {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+.unit {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, calc(-50% + 2.5rem));
+  color: #6b7280;
+  font-weight: 700;
+  font-size: 1.1rem;
+  text-align: center;
+  margin: 0;
+}
+.jitterSmall {
+  margin-top: 6px;
+  text-align: center;
+  color: #a9b3c8;
+  font-size: 0.9rem;
+}
+
+.comfortLevel {
+  margin-top: 8px;
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+}
+
+.history {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+}
+.historyTitle {
+  margin: 0 0 10px;
+  font-size: 1.05rem;
+  color: #d5def1;
+}
+.historyCanvas {
+  width: 100%;
+  max-width: 980px;
+  display: block;
+}
+.legend {
+  margin-top: 8px;
+  display: flex;
+  gap: 14px;
   align-items: center;
-  justify-items: center;
-  min-height: 100svh;
-  padding: 80px;
-  gap: 64px;
-  font-family: var(--font-geist-sans);
+  color: #b8c2d6;
+  font-size: 0.95rem;
 }
-
-@media (prefers-color-scheme: dark) {
-  .page {
-    --gray-rgb: 255, 255, 255;
-    --gray-alpha-200: rgba(var(--gray-rgb), 0.145);
-    --gray-alpha-100: rgba(var(--gray-rgb), 0.06);
-
-    --button-primary-hover: #ccc;
-    --button-secondary-hover: #1a1a1a;
-  }
+.dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 6px;
 }
-
-.main {
+.dotDownload {
+  background: #4facfe;
+}
+.dotUpload {
+  background: #a18cd1;
+}
+.dotLatency {
+  background: #ffb347;
+}
+/* メインコンテナ */
+.speedTestContainer {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #b6c3ff, #baf5f5, #f7ffd8);
+  background-size: 400% 400%;
+  animation: gradientShift 3s linear infinite;
+  padding: 2rem;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
   display: flex;
   flex-direction: column;
-  gap: 32px;
-  grid-row-start: 2;
+  align-items: center;
+  justify-content: center;
 }
 
-.main ol {
-  font-family: var(--font-geist-mono);
-  padding-left: 0;
-  margin: 0;
-  font-size: 14px;
-  line-height: 24px;
-  letter-spacing: -0.01em;
-  list-style-position: inside;
+/* メインカード */
+.speedTestCard {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 24px;
+  padding: 3rem;
+  max-width: 900px;
+  width: 100%;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  animation: slideUp 0.6s ease-out;
 }
 
-.main li:not(:last-of-type) {
-  margin-bottom: 8px;
+/* ヘッダー */
+.header {
+  text-align: center;
+  margin-bottom: 3rem;
 }
 
-.main code {
-  font-family: inherit;
-  background: var(--gray-alpha-100);
-  padding: 2px 4px;
-  border-radius: 4px;
-  font-weight: 600;
-}
-
-.ctas {
-  display: flex;
-  gap: 16px;
-}
-
-.ctas a {
-  appearance: none;
-  border-radius: 128px;
-  height: 48px;
-  padding: 0 20px;
-  border: 1px solid transparent;
-  transition:
-    background 0.2s,
-    color 0.2s,
-    border-color 0.2s;
-  cursor: pointer;
+.title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 0.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
-  line-height: 20px;
+  gap: 0.5rem;
+}
+
+.titleIcon {
+  font-size: 2.2rem;
+  animation: pulse 2s infinite;
+}
+
+.subtitle {
+  color: #6b7280;
+  font-size: 1.1rem;
   font-weight: 500;
+  margin: 0;
 }
 
-a.primary {
-  background: var(--foreground);
-  color: var(--background);
-  gap: 8px;
+/* メトリクスグリッド */
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  margin-bottom: 3rem;
 }
 
-a.secondary {
-  border-color: var(--gray-alpha-200);
-  min-width: 158px;
+.metricCard {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.8),
+    rgba(255, 255, 255, 0.4)
+  );
+  border-radius: 16px;
+  padding: 1.5rem;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
 }
 
-.footer {
-  grid-row-start: 3;
-  display: flex;
-  gap: 24px;
+.metricCard::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #667eea, #764ba2);
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
 }
 
-.footer a {
+.metricIcon {
+  width: 32px;
+  height: 32px;
+  margin: 0 auto 0.5rem auto;
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
 }
 
-.footer img {
-  flex-shrink: 0;
+.metricLabel {
+  color: #d5def1;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.5rem;
 }
 
-/* Enable hover only on non-touch devices */
-@media (hover: hover) and (pointer: fine) {
-  a.primary:hover {
-    background: var(--button-primary-hover);
-    border-color: transparent;
-  }
+.metricLabelDownload {
+  color: #4facfe;
+}
+.metricLabelUpload {
+  color: #a18cd1;
+}
+.metricLabelLatency {
+  color: #ffb347;
+}
 
-  a.secondary:hover {
-    background: var(--button-secondary-hover);
-    border-color: transparent;
-  }
+.metricValue {
+  font-size: 4.5rem;
+  font-weight: 900;
+  color: #ffffff;
+  text-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+  font-family: "JetBrains Mono", monospace;
+  text-align: center;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
 
-  .footer a:hover {
-    text-decoration: underline;
-    text-underline-offset: 4px;
+.value {
+  font-size: 3.2rem;
+  font-weight: 900;
+  color: #1f2937;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  font-family: "JetBrains Mono", monospace;
+  text-align: center;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  margin: 0;
+}
+
+/* コントロール */
+.controls {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.startButton {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  border-radius: 50px;
+  padding: 1rem 2.5rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.startButton::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  transition: left 0.5s;
+}
+
+.startButton:hover::before {
+  left: 100%;
+}
+
+.startButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 25px rgba(102, 126, 234, 0.4);
+}
+
+.startButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.startButton.running {
+  animation: breathe 1.6s ease-in-out infinite;
+}
+
+.buttonIcon {
+  font-size: 1.2rem;
+}
+
+/* プログレスバー */
+.progressContainer {
+  margin-bottom: 2rem;
+}
+
+.progressBar {
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.1);
+  border: none;
+  overflow: hidden;
+}
+
+.progressBar::-webkit-progress-bar {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
+
+.progressBar::-webkit-progress-value {
+  background: linear-gradient(90deg, #667eea, #764ba2);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.progressBar::-moz-progress-bar {
+  background: linear-gradient(90deg, #667eea, #764ba2);
+  border-radius: 4px;
+}
+
+/* ログ */
+.logContainer {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 12px;
+  padding: 1rem;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.logContainer.completed {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(16, 185, 129, 0.05));
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.15);
+  animation: completionPulse 0.6s ease-out;
+}
+
+.logText {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 1.5rem;
+  line-height: 1.6;
+  color: #374151;
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  transition: color 0.3s ease;
+}
+
+.logContainer.completed .logText {
+  color: #059669;
+  font-weight: 600;
+}
+
+/* アニメーション */
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
   }
 }
 
-@media (max-width: 600px) {
-  .page {
-    padding: 32px;
-    padding-bottom: 80px;
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
   }
-
-  .main {
-    align-items: center;
-  }
-
-  .main ol {
-    text-align: center;
-  }
-
-  .ctas {
-    flex-direction: column;
-  }
-
-  .ctas a {
-    font-size: 14px;
-    height: 40px;
-    padding: 0 16px;
-  }
-
-  a.secondary {
-    min-width: auto;
-  }
-
-  .footer {
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: center;
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes completionPulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.15);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 8px 20px rgba(34, 197, 94, 0.25);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.15);
+  }
+}
+
+/* ダークモード対応 */
 @media (prefers-color-scheme: dark) {
-  .logo {
-    filter: invert();
+  .speedTestCard {
+    background: rgba(17, 24, 39, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .title {
+    background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .subtitle {
+    color: #9ca3af;
+  }
+
+  .metricCard {
+    background: linear-gradient(
+      135deg,
+      rgba(31, 41, 55, 0.8),
+      rgba(31, 41, 55, 0.4)
+    );
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .metricValue {
+    color: #f9fafb;
+  }
+
+  .metricLabel {
+    color: #9ca3af;
+  }
+
+  .logContainer {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .logText {
+    color: #d1d5db;
+  }
+
+  .logContainer.completed {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(16, 185, 129, 0.08));
+    border: 1px solid rgba(34, 197, 94, 0.4);
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.2);
+  }
+
+  .logContainer.completed .logText {
+    color: #10b981;
+  }
+
+  .comfortLevel {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .startButton {
+    background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+    box-shadow: 0 8px 20px rgba(139, 92, 246, 0.3);
+  }
+
+  .startButton:hover {
+    box-shadow: 0 12px 25px rgba(139, 92, 246, 0.4);
+  }
+
+  .progressBar::-webkit-progress-value {
+    background: linear-gradient(90deg, #8b5cf6, #06b6d4);
+  }
+
+  .progressBar::-moz-progress-bar {
+    background: linear-gradient(90deg, #8b5cf6, #06b6d4);
+  }
+}
+
+/* レスポンシブデザイン */
+@media (max-width: 768px) {
+  .speedTestContainer {
+    padding: 1rem;
+  }
+
+  .speedTestCard {
+    padding: 2rem;
+    border-radius: 20px;
+  }
+
+  .title {
+    font-size: 2rem;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .titleIcon {
+    font-size: 1.8rem;
+  }
+
+  .metricsGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+
+  .metricCard {
+    padding: 1.25rem;
+  }
+
+  .gaugeSvg {
+    width: 180px;
+    height: 180px;
+  }
+
+  .metricValue {
+    font-size: 2.8rem;
+  }
+
+  .value {
+    font-size: 2.2rem;
+  }
+
+  .unit {
+    font-size: 1rem;
+    transform: translate(-50%, calc(-50% + 2rem));
+  }
+
+  .startButton {
+    padding: 0.875rem 2rem;
+    font-size: 1rem;
+  }
+}
+
+/* フッター */
+.footer {
+  margin-top: 2rem;
+  padding: 2rem 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #000000;
+}
+
+.footerInner {
+  width: 100%;
+  max-width: 900px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 1rem;
+  text-align: center;
+}
+
+.footerLink {
+  color: #000000;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.footerLink:hover {
+  opacity: 0.9;
+}
+
+.copyright {
+  color: #000000;
+  font-size: 0.9rem;
+}
+
+@media (prefers-color-scheme: light) {
+  .footer {
+    color: #000000;
+  }
+  .footerLink {
+    color: #000000;
+  }
+  .copyright {
+    color: #000000;
+  }
+}
+
+@media (max-width: 480px) {
+  .metricsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .title {
+    font-size: 1.75rem;
+  }
+
+  .speedTestCard {
+    padding: 1.5rem;
+  }
+
+  .gaugeSvg {
+    width: 160px;
+    height: 160px;
+  }
+
+  .metricValue {
+    font-size: 2.2rem;
+  }
+
+  .value {
+    font-size: 1.8rem;
+  }
+
+  .unit {
+    font-size: 0.9rem;
+    transform: translate(-50%, calc(-50% + 1.8rem));
   }
 }

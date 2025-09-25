@@ -1,6 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Image from "next/image";
+import styles from "./page.module.css";
 
 const DOWNLOAD_SIZE_MB = 20;
 const UPLOAD_SIZE_MB = 10;
@@ -36,17 +38,103 @@ export default function Page() {
   const [up, setUp] = useState<string>("-- Mbps");
   const [lat, setLat] = useState<string>("-- ms");
   const [jit, setJit] = useState<string>("-- ms");
-  const [log, setLog] = useState<string>("");
-  const [running, setRunning] = useState(false);
-  const barRef = useRef<HTMLProgressElement>(null);
+  const [message, setMessage] = useState<string>("");
 
-  const addLog = (m: string) => setLog((s) => s + m + "\n");
+  const [running, setRunning] = useState(false);
+  const [completed, setCompleted] = useState(false);
+  const barRef = useRef<HTMLProgressElement>(null);
+  const dlCircleRef = useRef<SVGCircleElement>(null);
+  const ulCircleRef = useRef<SVGCircleElement>(null);
+  const ltCircleRef = useRef<SVGCircleElement>(null);
+  const dlValueRef = useRef<HTMLDivElement>(null);
+  const ulValueRef = useRef<HTMLDivElement>(null);
+  const ltValueRef = useRef<HTMLDivElement>(null);
+
   const step = () => {
     const steps = PING_COUNT + 2 * PARALLEL + 2 * PARALLEL;
     if (barRef.current) {
       barRef.current.value = Math.min(100, barRef.current.value + 100 / steps);
     }
   };
+
+  // ====== 可視化ユーティリティ ======
+  const CIRC = 326; // stroke-dasharray
+  const setGaugePercent = (el: SVGCircleElement | null, p01: number) => {
+    if (!el) return;
+    const p = Math.max(0, Math.min(1, p01));
+    el.style.strokeDashoffset = String(CIRC * (1 - p));
+  };
+  const animateGaugeTo = (
+    el: SVGCircleElement | null,
+    from: number,
+    to: number,
+    dur = 900
+  ) => {
+    if (!el) return;
+    const start = performance.now();
+    const frame = (now: number) => {
+      const t = Math.min(1, (now - start) / dur);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setGaugePercent(el, from + (to - from) * eased);
+      if (t < 1) requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+  };
+  const animateNumber = (
+    el: HTMLDivElement | null,
+    from: number,
+    to: number,
+    suffix = "",
+    dur = 900,
+    decimals = 0
+  ) => {
+    if (!el) return;
+    const start = performance.now();
+    const frame = (now: number) => {
+      const t = Math.min(1, (now - start) / dur);
+      const eased = 1 - Math.pow(1 - t, 3);
+      const val = from + (to - from) * eased;
+      el.textContent =
+        (decimals ? val.toFixed(decimals) : String(Math.round(val))) + suffix;
+      if (t < 1) requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+  };
+  const normMbps = (mbpsVal: number) =>
+    Math.max(0, Math.min(1, mbpsVal / 1000));
+  const normLatency = (msVal: number) =>
+    1 - Math.max(0, Math.min(1, msVal / 300));
+
+  // 快適度を計算する関数
+  const getComfortLevel = (type: 'download' | 'upload' | 'latency', value: number) => {
+    switch (type) {
+      case 'download':
+        if (value >= 100) return { level: '非常に快適', color: '#10b981', emoji: '🚀' };
+        if (value >= 50) return { level: '快適', color: '#3b82f6', emoji: '😊' };
+        if (value >= 25) return { level: '普通', color: '#f59e0b', emoji: '😐' };
+        if (value >= 10) return { level: 'やや遅い', color: '#ef4444', emoji: '😕' };
+        return { level: '遅い', color: '#dc2626', emoji: '😞' };
+      
+      case 'upload':
+        if (value >= 50) return { level: '非常に快適', color: '#10b981', emoji: '🚀' };
+        if (value >= 25) return { level: '快適', color: '#3b82f6', emoji: '😊' };
+        if (value >= 10) return { level: '普通', color: '#f59e0b', emoji: '😐' };
+        if (value >= 5) return { level: 'やや遅い', color: '#ef4444', emoji: '😕' };
+        return { level: '遅い', color: '#dc2626', emoji: '😞' };
+      
+      case 'latency':
+        if (value <= 20) return { level: '非常に快適', color: '#10b981', emoji: '🚀' };
+        if (value <= 50) return { level: '快適', color: '#3b82f6', emoji: '😊' };
+        if (value <= 100) return { level: '普通', color: '#f59e0b', emoji: '😐' };
+        if (value <= 200) return { level: 'やや遅い', color: '#ef4444', emoji: '😕' };
+        return { level: '遅い', color: '#dc2626', emoji: '😞' };
+      
+      default:
+        return { level: '不明', color: '#6b7280', emoji: '❓' };
+    }
+  };
+
+  // 履歴機能は削除
 
   const pingOnce = async (signal: AbortSignal) => {
     const t0 = performance.now();
@@ -140,102 +228,229 @@ export default function Page() {
   const start = async () => {
     if (running) return;
     setRunning(true);
+    setCompleted(false);
     setDown("-- Mbps");
     setUp("-- Mbps");
     setLat("-- ms");
     setJit("-- ms");
-    setLog("");
+    setMessage("");
     if (barRef.current) barRef.current.value = 0;
 
     try {
-      addLog("🔔 Latency計測中…");
+      setMessage("Latency計測中…");
       const { avg, jitter } = await measureLatency();
       setLat(`${avg.toFixed(1)} ms`);
       setJit(`${jitter.toFixed(1)} ms`);
+      animateGaugeTo(ltCircleRef.current, 0, normLatency(avg), 1000);
+      animateNumber(ltValueRef.current, 0, avg, "", 1000, 0);
 
-      addLog("⬇️ Download計測中…");
+      setMessage("Download計測中…");
       const dl = await measureDownload();
       setDown(`${dl.toFixed(1)} Mbps`);
+      animateGaugeTo(dlCircleRef.current, 0, normMbps(dl), 1200);
+      animateNumber(dlValueRef.current, 0, dl, "", 1200, 0);
 
-      addLog("⬆️ Upload計測中…");
+      setMessage("Upload計測中…");
       const ul = await measureUpload();
       setUp(`${ul.toFixed(1)} Mbps`);
+      animateGaugeTo(ulCircleRef.current, 0, normMbps(ul), 1200);
+      animateNumber(ulValueRef.current, 0, ul, "", 1200, 0);
 
-      addLog("✅ 完了");
+      setMessage("✅ 計測完了");
+      setCompleted(true);
       if (barRef.current) barRef.current.value = 100;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 外部ライブラリ都合で一時的にany
     } catch (e: any) {
       console.error(e);
-      addLog("❌ エラー: " + (e?.message || String(e)));
+      setMessage("❌ エラー: " + (e?.message || String(e)));
     } finally {
       setRunning(false);
     }
   };
 
   return (
-    <main
-      style={{
-        fontFamily:
-          "system-ui, -apple-system, Segoe UI, Roboto, Noto Sans JP, sans-serif",
-        padding: 24,
-      }}
-    >
-      <div
-        style={{
-          maxWidth: 760,
-          margin: "0 auto",
-          border: "1px solid #ddd",
-          borderRadius: 12,
-          padding: 16,
-        }}
-      >
-        <h1>ネット回線速度計測</h1>
-        <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-          <div style={{ flex: "1 1 160px" }}>
-            <div style={{ color: "#555", fontSize: 12 }}>Download</div>
-            <div style={{ fontSize: 24, fontWeight: 700 }}>{down}</div>
+    <main className={styles.speedTestContainer}>
+      <div className={styles.speedTestCard}>
+        <div className={styles.header}>
+          <h1 className={styles.title}>
+            <span className={styles.titleIcon}>
+              <Image src="/icons/bolt.svg" alt="bolt" width={28} height={28} />
+            </span>
+            ネット回線速度計測
+          </h1>
+          <p className={styles.subtitle}>
+            リアルタイムでインターネット速度を測定
+          </p>
+        </div>
+
+        <div className={styles.metricsGrid}>
+          <div className={`${styles.metricCard} ${styles.download}`}>
+            <div className={styles.gauge}>
+              <svg
+                className={styles.gaugeSvg}
+                viewBox="0 0 120 120"
+                aria-hidden="true"
+              >
+                <circle className={styles.gaugeBg} cx="60" cy="60" r="52" />
+                <circle
+                  ref={dlCircleRef}
+                  className={`${styles.gaugeFg} ${styles.gaugeFgDownload}`}
+                  cx="60"
+                  cy="60"
+                  r="52"
+                />
+              </svg>
+              <div className={styles.gaugeValue}>
+                <div ref={dlValueRef} className={`${styles.value}`}>
+                  --
+                </div>
+                <div className={styles.unit}>Mbps</div>
+              </div>
+            </div>
+            <div
+              className={`${styles.metricLabel} ${styles.metricLabelDownload}`}
+            >
+              Download
+            </div>
+            <div className={styles.jitterSmall}>Jitter: {jit}</div>
+            {down !== "-- Mbps" && (
+              <div 
+                className={styles.comfortLevel}
+                style={{ color: getComfortLevel('download', parseFloat(down)).color }}
+              >
+                {getComfortLevel('download', parseFloat(down)).emoji} {getComfortLevel('download', parseFloat(down)).level}
+              </div>
+            )}
           </div>
-          <div style={{ flex: "1 1 160px" }}>
-            <div style={{ color: "#555", fontSize: 12 }}>Upload</div>
-            <div style={{ fontSize: 24, fontWeight: 700 }}>{up}</div>
+
+          <div className={`${styles.metricCard} ${styles.upload}`}>
+            <div className={styles.gauge}>
+              <svg
+                className={styles.gaugeSvg}
+                viewBox="0 0 120 120"
+                aria-hidden="true"
+              >
+                <circle className={styles.gaugeBg} cx="60" cy="60" r="52" />
+                <circle
+                  ref={ulCircleRef}
+                  className={`${styles.gaugeFg} ${styles.gaugeFgUpload}`}
+                  cx="60"
+                  cy="60"
+                  r="52"
+                />
+              </svg>
+              <div className={styles.gaugeValue}>
+                <div ref={ulValueRef} className={styles.value}>
+                  --
+                </div>
+                <div className={styles.unit}>Mbps</div>
+              </div>
+            </div>
+            <div
+              className={`${styles.metricLabel} ${styles.metricLabelUpload}`}
+            >
+              Upload
+            </div>
+            <div className={styles.jitterSmall}>Jitter: {jit}</div>
+            {up !== "-- Mbps" && (
+              <div 
+                className={styles.comfortLevel}
+                style={{ color: getComfortLevel('upload', parseFloat(up)).color }}
+              >
+                {getComfortLevel('upload', parseFloat(up)).emoji} {getComfortLevel('upload', parseFloat(up)).level}
+              </div>
+            )}
           </div>
-          <div style={{ flex: "1 1 160px" }}>
-            <div style={{ color: "#555", fontSize: 12 }}>Latency (avg)</div>
-            <div style={{ fontSize: 24, fontWeight: 700 }}>{lat}</div>
-          </div>
-          <div style={{ flex: "1 1 160px" }}>
-            <div style={{ color: "#555", fontSize: 12 }}>Jitter (σ)</div>
-            <div style={{ fontSize: 24, fontWeight: 700 }}>{jit}</div>
+
+          <div className={`${styles.metricCard} ${styles.latency}`}>
+            <div className={styles.gauge}>
+              <svg
+                className={styles.gaugeSvg}
+                viewBox="0 0 120 120"
+                aria-hidden="true"
+              >
+                <circle className={styles.gaugeBg} cx="60" cy="60" r="52" />
+                <circle
+                  ref={ltCircleRef}
+                  className={`${styles.gaugeFg} ${styles.gaugeFgLatency}`}
+                  cx="60"
+                  cy="60"
+                  r="52"
+                />
+              </svg>
+              <div className={styles.gaugeValue}>
+                <div ref={ltValueRef} className={styles.value}>
+                  --
+                </div>
+                <div className={styles.unit}>ms</div>
+              </div>
+            </div>
+            <div
+              className={`${styles.metricLabel} ${styles.metricLabelLatency}`}
+            >
+              Latency
+            </div>
+            <div className={styles.jitterSmall}>Jitter: {jit}</div>
+            {lat !== "-- ms" && (
+              <div 
+                className={styles.comfortLevel}
+                style={{ color: getComfortLevel('latency', parseFloat(lat)).color }}
+              >
+                {getComfortLevel('latency', parseFloat(lat)).emoji} {getComfortLevel('latency', parseFloat(lat)).level}
+              </div>
+            )}
           </div>
         </div>
 
-        <p>
+        <div className={styles.controls}>
           <button
             onClick={start}
             disabled={running}
-            style={{
-              padding: "10px 16px",
-              borderRadius: 8,
-              border: "1px solid #ccc",
-              background: "#f8f8f8",
-              cursor: "pointer",
-              color: running ? "#999" : "#000",
-              fontSize: 16,
-              fontWeight: 700,
-              userSelect: "none",
-            }}
+            className={`${styles.startButton} ${running ? styles.running : ""}`}
           >
+            <span className={styles.buttonIcon}>{running ? "⏳" : "🚀"}</span>
             {running ? "計測中…" : "計測スタート"}
           </button>
-        </p>
-        <progress
-          ref={barRef}
-          value={0}
-          max={100}
-          style={{ width: "100%", height: 12 }}
-        />
-        <p style={{ whiteSpace: "pre-wrap" }}>{log}</p>
+        </div>
+
+        {(running || completed || message) && (
+          <>
+            <div className={styles.progressContainer}>
+              <progress
+                ref={barRef}
+                value={0}
+                max={100}
+                className={styles.progressBar}
+              />
+            </div>
+
+            {/* 履歴UIは削除 */}
+
+            <div className={`${styles.logContainer} ${completed ? styles.completed : ""}`}>
+              <pre className={styles.logText}>{message}</pre>
+            </div>
+          </>
+        )}
       </div>
+      <footer className={styles.footer}>
+        <div className={styles.footerInner}>
+          <p>
+            <a
+              href="https://comodo-apps.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.footerLink}
+            >
+              Comodo Apps
+            </a>
+          </p>
+          <p>
+            <span className={styles.copyright}>
+              © {new Date().getFullYear()} Comodo Apps
+            </span>
+          </p>
+        </div>
+      </footer>
     </main>
   );
 }
